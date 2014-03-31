@@ -34,6 +34,13 @@ function sub_channel(channel)
     end
 end
 
+function unsub_channel(channel)
+    local res, err = sub:unsubscribe(channel)
+    if not res then
+        ngx.log(ngx.ERR, err)
+    end
+end
+
 function read_messages()
     res, err = sub:read_reply()
     if not res then
@@ -44,7 +51,7 @@ function read_messages()
 end
 
 function close()
-    redtool.close(red, 10000, config.REDIS_POOL_SIZE)
-    redtool.close(sub, 10000, config.REDIS_POOL_SIZE)
+    redtool.close(red, 1000, config.REDIS_POOL_SIZE)
+    redtool.close(sub, 5000, config.REDIS_POOL_SIZE)
 end
 
