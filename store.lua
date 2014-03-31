@@ -37,7 +37,7 @@ end
 function read_messages()
     res, err = sub:read_reply()
     if not res then
-        ngx.say("failed to read reply: ", err)
+        ngx.log(ngx.ERR, err)
         return
     end
     return res

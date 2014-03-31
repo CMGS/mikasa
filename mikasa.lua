@@ -34,47 +34,49 @@ if not ws then
   return ngx.exit(444)
 end
 
-ngx.thread.spawn(function ()
+local sub_thread = ngx.thread.spawn(function ()
     local bytes, err
     while true do
-        print("read thread")
+        print("write thread")
         local msg = store.read_messages()
+        if not flag then
+            break
+        end
         if msg then
             bytes, err = ws:send_text(msg[3])
-            if not bytes then
-                ngx.log(ngx.ERR, "failed to send a text frame: ", err)
+            if not bytes or err then
+                ngx.log(ngx.ERR, err)
             end
         end
     end
 end)
 
 while true do
-    print("write thread")
+    print("read thread")
     local data, typ, err = ws:recv_frame()
     if not data then
-        ngx.log(ngx.ERR, "failed to receive a frame: ", err)
+        ngx.log(ngx.ERR, err)
     end
 
     if typ == "close" then
-        local bytes, err = ws:send_close()
-        if not bytes then
-            ngx.log(ngx.ERR, "failed to send the close frame: ", err)
-            break
-        end
         ngx.log(ngx.INFO, "closing")
-        return
+        break
     elseif typ == "ping" then
         local bytes, err = ws:send_pong(data)
         if not bytes then
-            ngx.log(ngx.ERR, "failed to send frame: ", err)
+            ngx.log(ngx.ERR, err)
             break
         end
     elseif typ == "pong" then
     elseif data then
-        ngx.log(ngx.INFO, "received a frame of type ", typ, " and payload ", data)
+        ngx.log(ngx.INFO, "type: ", typ, "data: ", data)
     else break end
 end
 
+local bytes, err = ws:send_close()
+if not bytes then
+    ngx.log(ngx.ERR, err)
+end
 session.close()
 store.close()
 
