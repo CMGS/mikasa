@@ -1,31 +1,27 @@
-module("redis", package.seeall)
+module("redtool", package.seeall)
 
-local redis = require "resty.redis"
-
-local s = redis:new()
-
-function set_timeout(time)
-    s:set_timeout(time)
+function set_timeout(red, time)
+    red:set_timeout(time)
 end
 
-function open(host, port, password)
-    local ok, err = s:connect(host, port)
+function open(red, host, port, password)
+    local ok, err = red:connect(host, port)
     if not ok then
         ngx.say("failed to connect: ", err)
         return ngx.exit(502)
     end
     if password then
-        local ok, err = s.auth(password)
+        local ok, err = red.auth(password)
         if not ok then
             ngx.say("failed to connect: ", err)
             return ngx.exit(502)
         end
     end
-    return s
+    return red
 end
 
-function close(time, pool_size)
-    local ok, err = s:set_keepalive(time, pool_size)
+function close(red, time, pool_size)
+    local ok, err = red:set_keepalive(time, pool_size)
     if not ok then
         ngx.say("failed to set keepalive: ", err)
         return ngx.exit(502)

@@ -11,3 +11,8 @@ SESSION_PORT = 6379
 SESSION_PASSWORD = nil
 SESSION_POOL_SIZE = 1000
 
+SESSION_FORMAT = "session:%s"
+
+IRC_USER_CHANNELS_FORMAT = "irc:%s:channels"
+IRC_CHANNEL_ONLINE = "irc:%s:%s:online"
+IRC_CHANNEL_PUBSUB = "irc:%s:%s:pubsub"
