@@ -37,6 +37,7 @@ end
 ngx.thread.spawn(function ()
     local bytes, err
     while true do
+        print("read thread")
         local msg = store.read_messages()
         if msg then
             bytes, err = ws:send_text(msg[3])
@@ -48,17 +49,17 @@ ngx.thread.spawn(function ()
 end)
 
 while true do
+    print("write thread")
     local data, typ, err = ws:recv_frame()
     if not data then
         ngx.log(ngx.ERR, "failed to receive a frame: ", err)
-        return ngx.exit(444)
     end
 
     if typ == "close" then
         local bytes, err = ws:send_close()
         if not bytes then
             ngx.log(ngx.ERR, "failed to send the close frame: ", err)
-            return
+            break
         end
         ngx.log(ngx.INFO, "closing")
         return
@@ -66,7 +67,7 @@ while true do
         local bytes, err = ws:send_pong(data)
         if not bytes then
             ngx.log(ngx.ERR, "failed to send frame: ", err)
-            return
+            break
         end
     elseif typ == "pong" then
     elseif data then
@@ -76,5 +77,4 @@ end
 
 session.close()
 store.close()
-ngx.exit(ngx.OK)
 

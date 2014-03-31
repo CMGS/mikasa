@@ -24,6 +24,6 @@ function close(red, time, pool_size)
     local ok, err = red:set_keepalive(time, pool_size)
     if not ok then
         ngx.say("failed to set keepalive: ", err)
-        return ngx.exit(502)
+        return ngx.exit(444)
     end
 end

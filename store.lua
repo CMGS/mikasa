@@ -8,7 +8,7 @@ local channels = nil
 local red = redis:new()
 local sub = redis:new()
 redtool.set_timeout(red, 1000)
-redtool.set_timeout(sub, 600000)
+redtool.set_timeout(sub, 6000000)
 
 function init()
     red = redtool.open(red, config.REDIS_HOST, config.REDIS_PORT)
