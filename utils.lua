@@ -17,3 +17,23 @@ function reg_on_abort(func)
         ngx.exit(500)
     end
 end
+
+function get_keys(t)
+    local keyset={}
+    local n=0
+    table.foreach(t, function(k, v)
+        n = n+1
+        keyset[n] = k
+    end)
+    return keyset
+end
+
+function get_values(t)
+    local valueset={}
+    local n=0
+    table.foreach(t, function(k, v)
+        n = n+1
+        valueset[n] = v
+    end)
+    return valueset
+end

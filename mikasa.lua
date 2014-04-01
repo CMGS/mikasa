@@ -30,11 +30,7 @@ if not check.check_permission(uid, oid) then
 end
 
 local channels = store.get_channels(redis_store, oid, uid)
-local welcome_str = table.concat(channels, ", ")
-
-
-local chan = {}
-table.foreach(channels, function(cid, cname) chan[cname]=cid end)
+local welcome_str = table.concat(utils.get_keys(channels), ", ")
 
 local ws, err = server:new {
   timeout = 600000,
@@ -77,12 +73,14 @@ while true do
         data = string.split(data, ":")
         local control, cname, d = data[1], data[2], data[3]
 
-        if control == "_g_last" and chan[cname] and d then
+        if control == "_g_last" and channels[cname] and d then
             local timestamp = tonumber(d)
-            local messages = store.get_last_messages(redis_store, oid, chan[cname], timestamp)
-            table.foreach(messages, function(seq, message) websocket.send_message(ws, message) end)
-        elseif control == "_s_msg" and chan[cname] and d then
-            store.pubish_message(redis_store, oid, chan[cname], d, uname, uid)
+            local messages = store.get_last_messages(redis_store, oid, channels[cname], timestamp)
+            table.foreach(messages, function(seq, message)
+                websocket.send_message(ws, string.format("%s>>>%s", cname, message))
+            end)
+        elseif control == "_s_msg" and channels[cname] and d then
+            store.pubish_message(redis_store, oid, channels[cname], d, uname, uid)
         else
             ngx.log(ngx.ERR, "incorrect data: ", o_data)
         end

@@ -38,14 +38,19 @@ if not ws then
     return ngx.exit(444)
 end
 
+local chan = {}
+local keys = {}
 local channels = store.get_channels(redis_store, oid, uid)
-for cid, cname in ipairs(channels) do
+
+for cname, cid in pairs(channels) do
     local key = string.format(config.IRC_CHANNEL_PUBSUB, oid, cid)
-    store.subscribe(redis_store, key)
     store.set_online(redis_store, oid, cid, uid, uname)
     websocket.send_message(ws, string.format("%s join %s", uname, cname))
-    channels[cid] = key
+    chan[cid] = key
+    keys[key] = cname
 end
+
+store.subscribe(redis_store, utils.get_keys(keys))
 
 local lock = true
 local function clean_up()
@@ -56,8 +61,8 @@ local function clean_up()
             ngx.log(ngx.ERR, err)
         end
     end
-    for cid, ckey in ipairs(channels) do
-        store.unsubscribe(redis_store, ckey)
+    store.unsubscribe(redis_store, utils.get_keys(keys))
+    for cid, ckey in pairs(chan) do
         store.set_offline(redis_store, oid, cid, uid)
     end
     redtool.close(sess, config.SESSION_POOL_SIZE)
@@ -71,10 +76,10 @@ end)
 
 ngx.log(ngx.INFO, "start reader")
 while ngx.shared.clients:get(ngx.var.cookie_TID) do
-    local message = store.read_message(redis_store)
-    if message then
-        ngx.log(ngx.INFO, message[3])
-        websocket.send_message(ws, message[3])
+    local typ, key, data = store.read_message(redis_store)
+    if data and typ == "message" then
+        ngx.log(ngx.INFO, "channel key: ", key, " data: ", data)
+        websocket.send_message(ws, string.format("%s>>>%s", keys[key], data))
     end
     if not lock then break end
 end
