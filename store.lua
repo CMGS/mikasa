@@ -39,9 +39,11 @@ function subscribe(red, keys)
 end
 
 function unsubscribe(red, keys)
-    local res, err = red:unsubscribe(unpack(keys))
-    if not res then
-        ngx.log(ngx.ERR, err)
+    for k, v in pairs(keys) do
+        local res, err = red:unsubscribe(k)
+        if not res then
+            ngx.log(ngx.ERR, err)
+        end
     end
 end
 

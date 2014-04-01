@@ -61,7 +61,7 @@ local function clean_up()
             ngx.log(ngx.ERR, err)
         end
     end
-    store.unsubscribe(redis_store, utils.get_keys(keys))
+    store.unsubscribe(redis_store, keys)
     for cid, ckey in pairs(chan) do
         store.set_offline(redis_store, oid, cid, uid)
     end
