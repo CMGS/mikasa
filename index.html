@@ -1,0 +1,77 @@
+<html>
+<head>
+<script>
+var ws_w = null;
+var ws_r = null;
+function connect() {
+    if (ws_w !== null) return log('writer already connected');
+      ws_w = new WebSocket('ws://127.0.0.1:8060/1/1');
+        ws_w.onopen = function () {
+              log('connected');
+        };
+        ws_w.onerror = function (error) {
+              log(error);
+        };
+        ws_w.onmessage = function (e) {
+              log('  ' + e.data);
+        };
+        ws_w.onclose = function () {
+              log('disconnected');
+              ws_w = null;
+        };
+
+    if (ws_r !== null) return log('reader already connected');
+      ws_r = new WebSocket('ws://127.0.0.1:8060/1/1/pusher');
+        ws_r.onopen = function () {
+              log('connected');
+        };
+        ws_r.onerror = function (error) {
+              log(error);
+        };
+        ws_r.onmessage = function (e) {
+              log('  ' + e.data);
+        };
+        ws_r.onclose = function () {
+              log('disconnected');
+              ws_r = null;
+        };
+    return false;
+}
+
+function disconnect() {
+    if (ws_w === null) return log('writer already disconnected');
+      ws_w.close();
+    if (ws_r === null) return log('reader already disconnected');
+      ws_r.close();
+    return false;
+}
+function send() {
+    if (ws_w === null) return log('please connect first');
+      var text = document.getElementById('text').value;
+      document.getElementById('text').value = "";
+      ws_w.send(text);
+      return false;
+}
+function log(text) {
+    var li = document.createElement('li');
+    li.appendChild(document.createTextNode(text));
+    document.getElementById('log').appendChild(li);
+    return false;
+}
+</script>
+</head>
+<body>
+  <form onsubmit="return send();">
+      <button type="button" onclick="return connect();">
+          Connect
+     </button>
+     <button type="button" onclick="return disconnect();">
+          Disconnect
+     </button>
+     <input id="text" type="text">
+     <button type="submit">Send</button>
+     </form>
+     <ol id="log"></ol>
+ </body>
+</html>
+
