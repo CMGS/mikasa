@@ -1,18 +1,6 @@
 module("store", package.seeall)
 
-local redtool = require "redtool"
-local redis = require "resty.redis"
 local config = require "config"
-
-function init()
-    local red = redis:new()
-    local sub = redis:new()
-    redtool.set_timeout(red, 1000)
-    redtool.set_timeout(sub, 5000)
-    redtool.open(red, config.REDIS_HOST, config.REDIS_PORT)
-    redtool.open(sub, config.REDIS_HOST, config.REDIS_PORT)
-    return red, sub
-end
 
 function get_channels(red, oid, uid)
     channels = red:lrange(string.format(config.IRC_USER_CHANNELS_FORMAT, oid, uid), 0, -1)
@@ -27,16 +15,16 @@ function set_offline(red, oid, cid, uid)
     local res, err = red:hdel(string.format(config.IRC_CHANNEL_ONLINE, oid, cid), uid)
 end
 
-function sub_channel(sub, key)
-    local res, err = sub:subscribe(key)
+function subscribe(red, key)
+    local res, err = red:subscribe(key)
     if not res then
         ngx.say("failed to subscribe: ", err)
         return ngx.exit(502)
     end
 end
 
-function unsub_channel(sub, key)
-    local res, err = sub:unsubscribe(key)
+function unsubscribe(red, key)
+    local res, err = red:unsubscribe(key)
     if not res then
         ngx.log(ngx.ERR, err)
     end
@@ -65,17 +53,12 @@ function get_last_messages(red, oid, cid, timestamp)
     return messages
 end
 
-function read_message(sub)
-    res, err = sub:read_reply()
+function read_message(red)
+    res, err = red:read_reply()
     if not res and not string.find(err, "timeout") then
         ngx.log(ngx.ERR, err)
         return
     end
     return res
-end
-
-function close(red, sub)
-    redtool.close(red, 600000, config.REDIS_POOL_SIZE)
-    redtool.close(sub, 600000, config.REDIS_POOL_SIZE)
 end
 

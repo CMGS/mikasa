@@ -2,27 +2,38 @@ local utils = require "utils"
 local check = require "check"
 local store = require "store"
 local config = require "config"
+local redtool = require "redtool"
 local session = require "session"
 local websocket = require "websocket"
 local server = require "resty.websocket.server"
 
-local red = session.init()
-local sred, psred = store.init()
+local sess = redtool.open(
+    config.SESSION_HOST,
+    config.SESSION_PORT,
+    config.SESSION_PASSWORD,
+    config.SESSION_TIMEOUT
+)
+local redis_store = redtool.open(
+    config.REDIS_HOST,
+    config.REDIS_PORT,
+    config.REDIS_PASSWORD,
+    config.REDIS_TIMEOUT
+)
 
 local oid = ngx.var.oid
-local uid, uname = session.get_user(red, ngx.var.cookie_TID)
+local uid, uname = session.get_user(sess, ngx.var.cookie_TID)
 
 if not check.check_permission(uid, oid) then
     ngx.say("permission deny")
     return
 end
 
-local channels = store.get_channels(sred, oid, uid)
+local channels = store.get_channels(redis_store, oid, uid)
 
 for cid, cname in ipairs(channels) do
     local key = string.format(config.IRC_CHANNEL_PUBSUB, oid, cid)
-    store.sub_channel(psred, key)
-    store.set_online(sred, oid, cid, uid, uname)
+    store.subscribe(redis_store, key)
+    store.set_online(redis_store, oid, cid, uid, uname)
     channels[cid] = key
 end
 
@@ -46,11 +57,11 @@ local function clean_up()
         end
     end
     for cid, ckey in ipairs(channels) do
-        store.unsub_channel(psred, ckey)
-        store.set_offline(sred, oid, cid, uid)
+        store.unsubscribe(redis_store, ckey)
+        store.set_offline(redis_store, oid, cid, uid)
     end
-    store.close(sred, psred)
-    session.close(red)
+    redtool.close(sess, config.SESSION_POOL_SIZE)
+    redtool.close(redis_store, config.REDIS_POOL_SIZE)
     ngx.exit(444)
 end
 
@@ -60,7 +71,7 @@ end)
 
 ngx.log(ngx.INFO, "start reader")
 while ngx.shared.clients:get(ngx.var.cookie_TID) do
-    local message = store.read_message(psred)
+    local message = store.read_message(redis_store)
     if message then
         ngx.log(ngx.INFO, message[3])
         websocket.send_message(ws, message[3])

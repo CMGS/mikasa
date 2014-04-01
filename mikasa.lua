@@ -2,15 +2,26 @@ local utils = require "utils"
 local check = require "check"
 local store = require "store"
 local config = require "config"
+local redtool = require "redtool"
 local session = require "session"
 local websocket = require "websocket"
 local server = require "resty.websocket.server"
 
-local red = session.init()
-local sred, psred = store.init()
+local sess = redtool.open(
+    config.SESSION_HOST,
+    config.SESSION_PORT,
+    config.SESSION_PASSWORD,
+    config.SESSION_TIMEOUT
+)
+local redis_store = redtool.open(
+    config.REDIS_HOST,
+    config.REDIS_PORT,
+    config.REDIS_PASSWORD,
+    config.REDIS_TIMEOUT
+)
 
 local oid = ngx.var.oid
-local uid, uname = session.get_user(red, ngx.var.cookie_TID)
+local uid, uname = session.get_user(sess, ngx.var.cookie_TID)
 local clients = ngx.shared.clients
 
 if not check.check_permission(uid, oid) then
@@ -18,7 +29,7 @@ if not check.check_permission(uid, oid) then
     return
 end
 
-local channels = store.get_channels(sred, oid, uid)
+local channels = store.get_channels(redis_store, oid, uid)
 local welcome_str = table.concat(channels, ", ")
 
 
@@ -38,8 +49,8 @@ end
 local function clean_up()
     ngx.log(ngx.INFO, "writer clean up")
     clients:delete(ngx.var.cookie_TID)
-    store.close(sred, psred)
-    session.close(red)
+    redtool.close(sess, config.SESSION_POOL_SIZE)
+    redtool.close(redis_store, config.REDIS_POOL_SIZE)
     local bytes, err = ws:send_close()
     if not bytes then
         ngx.log(ngx.ERR, err)
@@ -68,10 +79,10 @@ while true do
 
         if control == "_g_last" and chan[cname] and d then
             local timestamp = tonumber(d)
-            local messages = store.get_last_messages(sred, oid, chan[cname], timestamp)
+            local messages = store.get_last_messages(redis_store, oid, chan[cname], timestamp)
             table.foreach(messages, function(seq, message) websocket.send_message(ws, message) end)
         elseif control == "_s_msg" and chan[cname] and d then
-            store.pubish_message(sred, oid, chan[cname], d, uname, uid)
+            store.pubish_message(redis_store, oid, chan[cname], d, uname, uid)
         else
             ngx.log(ngx.ERR, "incorrect data: ", o_data)
         end
