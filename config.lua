@@ -13,6 +13,7 @@ SESSION_POOL_SIZE = 1000
 
 SESSION_FORMAT = "session:%s"
 
-IRC_USER_CHANNELS_FORMAT = "irc:%s:channels"
+IRC_USER_CHANNELS_FORMAT = "irc:%s:user_%s:channels"
 IRC_CHANNEL_ONLINE = "irc:%s:%s:online"
 IRC_CHANNEL_PUBSUB = "irc:%s:%s:pubsub"
+IRC_CHANNEL_MESSAGES = "irc:%s:%s:messages"

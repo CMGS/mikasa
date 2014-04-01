@@ -6,6 +6,10 @@ string.split = function(s, p)
     return rt
 end
 
+string.starts = function(s1, s2)
+   return string.sub(s1, 1, string.len(s2)) == s2
+end
+
 function reg_on_abort(func)
     local ok, err = ngx.on_abort(func)
     if not ok then
