@@ -8,7 +8,7 @@ local channels = nil
 local red = redis:new()
 local sub = redis:new()
 redtool.set_timeout(red, 1000)
-redtool.set_timeout(sub, 60000)
+redtool.set_timeout(sub, 5000)
 
 function init()
     red = redtool.open(red, config.REDIS_HOST, config.REDIS_PORT)
@@ -26,16 +26,16 @@ function set_online(oid, cid, uid, uname)
     local res, err = red:hmset(string.format(config.IRC_CHANNEL_ONLINE, oid, cid), uid, uname)
 end
 
-function sub_channel(channel)
-    local res, err = sub:subscribe(channel)
+function sub_channel(key)
+    local res, err = sub:subscribe(key)
     if not res then
         ngx.say("failed to subscribe: ", err)
         return ngx.exit(502)
     end
 end
 
-function unsub_channel(channel)
-    local res, err = sub:unsubscribe(channel)
+function unsub_channel(key)
+    local res, err = sub:unsubscribe(key)
     if not res then
         ngx.log(ngx.ERR, err)
     end
@@ -43,7 +43,7 @@ end
 
 function read_messages()
     res, err = sub:read_reply()
-    if not res then
+    if not res and not string.find(err, "timeout") then
         ngx.log(ngx.ERR, err)
         return
     end
