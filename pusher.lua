@@ -6,23 +6,23 @@ local session = require "session"
 local websocket = require "websocket"
 local server = require "resty.websocket.server"
 
-session.init()
-store.init()
+local red = session.init()
+local sred, psred = store.init()
 
 local oid = ngx.var.oid
-local uid, uname = session.get_user(ngx.var.cookie_TID)
+local uid, uname = session.get_user(red, ngx.var.cookie_TID)
 
 if not check.check_permission(uid, oid) then
     ngx.say("permission deny")
     return
 end
 
-local channels = store.get_channels(oid, uid)
+local channels = store.get_channels(sred, oid, uid)
 
 for cid, cname in ipairs(channels) do
     local key = string.format(config.IRC_CHANNEL_PUBSUB, oid, cid)
-    store.sub_channel(key)
-    store.set_online(oid, cid, uid, uname)
+    store.sub_channel(psred, key)
+    store.set_online(sred, oid, cid, uid, uname)
     channels[cid] = key
 end
 
@@ -46,11 +46,11 @@ local function clean_up()
         end
     end
     for cid, ckey in ipairs(channels) do
-        store.unsub_channel(ckey)
-        store.set_offline(oid, cid, uid)
+        store.unsub_channel(psred, ckey)
+        store.set_offline(sred, oid, cid, uid)
     end
-    store.close()
-    session.close()
+    store.close(sred, psred)
+    session.close(red)
     ngx.exit(444)
 end
 
@@ -60,7 +60,7 @@ end)
 
 ngx.log(ngx.INFO, "start reader")
 while ngx.shared.clients:get(ngx.var.cookie_TID) do
-    local message = store.read_message()
+    local message = store.read_message(psred)
     if message then
         ngx.log(ngx.INFO, message[3])
         websocket.send_message(ws, message[3])

@@ -39,10 +39,8 @@ function connect() {
 }
 
 function disconnect() {
-    if (ws_w === null) return log('writer already disconnected');
-      ws_w.close();
-    if (ws_r === null) return log('reader already disconnected');
-      ws_r.close();
+    if (ws_w != null) ws_w.close(); else log('writer already disconnected');
+    if (ws_r != null) ws_r.close(); else log('reader already disconnected');
     return false;
 }
 function send() {

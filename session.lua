@@ -6,25 +6,24 @@ local config = require "config"
 
 local uid = nil
 local uname = nil
-local red = redis:new()
-redtool.set_timeout(red, 1000)
 
 function init()
-    red = redtool.open(red, config.SESSION_HOST, config.SESSION_PORT)
+    local red = redis:new()
+    redtool.set_timeout(red, 1000)
+    redtool.open(red, config.SESSION_HOST, config.SESSION_PORT)
+    return red
 end
 
-function get_user(sid)
+function get_user(red, sid)
     if not sid then
         return nil
     end
-    if not uid or not uname then
-        local res, err = red:hmget(string.format(config.SESSION_FORMAT, sid), "user_id", "user_name")
-        uid, uname = res[1], res[2]
-    end
+    local res, err = red:hmget(string.format(config.SESSION_FORMAT, sid), "user_id", "user_name")
+    local uid, uname = res[1], res[2]
     return uid, uname
 end
 
-function close()
+function close(red)
     redtool.close(red, 10000, config.SESSION_POOL_SIZE)
 end
 

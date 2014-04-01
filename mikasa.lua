@@ -6,11 +6,11 @@ local session = require "session"
 local websocket = require "websocket"
 local server = require "resty.websocket.server"
 
-session.init()
-store.init()
+local red = session.init()
+local sred, psred = store.init()
 
 local oid = ngx.var.oid
-local uid, uname = session.get_user(ngx.var.cookie_TID)
+local uid, uname = session.get_user(red, ngx.var.cookie_TID)
 local clients = ngx.shared.clients
 
 if not check.check_permission(uid, oid) then
@@ -18,7 +18,7 @@ if not check.check_permission(uid, oid) then
     return
 end
 
-local channels = store.get_channels(oid, uid)
+local channels = store.get_channels(sred, oid, uid)
 local welcome_str = table.concat(channels, ", ")
 
 
@@ -38,8 +38,8 @@ end
 local function clean_up()
     ngx.log(ngx.INFO, "writer clean up")
     clients:delete(ngx.var.cookie_TID)
-    store.close()
-    session.close()
+    store.close(sred, psred)
+    session.close(red)
     local bytes, err = ws:send_close()
     if not bytes then
         ngx.log(ngx.ERR, err)
@@ -62,17 +62,18 @@ while true do
     if typ == "close" then
         break
     elseif data then
+        local o_data = data
         data = string.split(data, ":")
         local control, cname, d = data[1], data[2], data[3]
 
         if control == "_g_last" and chan[cname] and d then
             local timestamp = tonumber(d)
-            local messages = store.get_last_messages(oid, chan[cname], timestamp)
-            table.foreach(messages, function(seq, message) ngx.log(ngx.INFO, message) end)
+            local messages = store.get_last_messages(sred, oid, chan[cname], timestamp)
+            table.foreach(messages, function(seq, message) websocket.send_message(ws, message) end)
         elseif control == "_s_msg" and chan[cname] and d then
-            store.pubish_message(oid, chan[cname], d, uname, uid)
+            store.pubish_message(sred, oid, chan[cname], d, uname, uid)
         else
-            ngx.log(ngx.ERR, "incorrect data: ", data)
+            ngx.log(ngx.ERR, "incorrect data: ", o_data)
         end
     elseif string.find(err, "timeout") then
         clients:set(ngx.var.cookie_TID, true, 660000)
