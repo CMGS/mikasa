@@ -32,12 +32,12 @@ local ws, err = server:new {
 local clients = ngx.shared.clients
 
 if not ws then
-  ngx.log(ngx.ERR, "failed to new websocket: ", err)
-  return ngx.exit(444)
+    ngx.log(ngx.ERR, "failed to new websocket: ", err)
+    return ngx.exit(444)
 end
 
 while clients:get(ngx.var.cookie_TID) or false do
-    print("push thread")
+    ngx.log(ngx.INFO, "reader connection")
     local msg = store.read_messages()
     if msg then
         bytes, err = ws:send_text(msg[3])

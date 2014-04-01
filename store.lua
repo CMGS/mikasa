@@ -8,7 +8,7 @@ local channels = nil
 local red = redis:new()
 local sub = redis:new()
 redtool.set_timeout(red, 1000)
-redtool.set_timeout(sub, 6000000)
+redtool.set_timeout(sub, 60000)
 
 function init()
     red = redtool.open(red, config.REDIS_HOST, config.REDIS_PORT)
@@ -51,7 +51,7 @@ function read_messages()
 end
 
 function close()
-    redtool.close(red, 1000, config.REDIS_POOL_SIZE)
-    redtool.close(sub, 5000, config.REDIS_POOL_SIZE)
+    redtool.close(red, 600000, config.REDIS_POOL_SIZE)
+    redtool.close(sub, 600000, config.REDIS_POOL_SIZE)
 end
 

@@ -22,12 +22,12 @@ local clients = ngx.shared.clients
 clients:set(ngx.var.cookie_TID, true, 6000000)
 
 if not ws then
-  ngx.log(ngx.ERR, "failed to new websocket: ", err)
-  return ngx.exit(444)
+    ngx.log(ngx.ERR, "failed to new websocket: ", err)
+    return ngx.exit(444)
 end
 
 while true do
-    print("read thread")
+    ngx.log(ngx.INFO, "writer connection")
     local data, typ, err = ws:recv_frame()
     if not data then
         ngx.log(ngx.ERR, err)
