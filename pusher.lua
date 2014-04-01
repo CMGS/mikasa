@@ -28,15 +28,6 @@ if not check.check_permission(uid, oid) then
     return
 end
 
-local channels = store.get_channels(redis_store, oid, uid)
-
-for cid, cname in ipairs(channels) do
-    local key = string.format(config.IRC_CHANNEL_PUBSUB, oid, cid)
-    store.subscribe(redis_store, key)
-    store.set_online(redis_store, oid, cid, uid, uname)
-    channels[cid] = key
-end
-
 local ws, err = server:new {
   timeout = 5000,
   max_payload_len = 65535
@@ -45,6 +36,15 @@ local ws, err = server:new {
 if not ws then
     ngx.log(ngx.ERR, "failed to new websocket: ", err)
     return ngx.exit(444)
+end
+
+local channels = store.get_channels(redis_store, oid, uid)
+for cid, cname in ipairs(channels) do
+    local key = string.format(config.IRC_CHANNEL_PUBSUB, oid, cid)
+    store.subscribe(redis_store, key)
+    store.set_online(redis_store, oid, cid, uid, uname)
+    websocket.send_message(ws, string.format("%s join %s", uname, cname))
+    channels[cid] = key
 end
 
 local lock = true

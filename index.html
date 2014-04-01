@@ -4,10 +4,10 @@
 var ws_w = null;
 var ws_r = null;
 function connect() {
-    if (ws_w !== null) return log('writer already connected');
+    if (ws_w == null) {
       ws_w = new WebSocket('ws://127.0.0.1:8060/1/1');
         ws_w.onopen = function () {
-              log('connected');
+              log('writer connected');
         };
         ws_w.onerror = function (error) {
               log(error);
@@ -16,14 +16,16 @@ function connect() {
               log('  ' + e.data);
         };
         ws_w.onclose = function () {
-              log('disconnected');
+              log('writer disconnected');
               ws_w = null;
         };
+    }
+    else log('writer already connected');
 
-    if (ws_r !== null) return log('reader already connected');
+    if (ws_r == null) {
       ws_r = new WebSocket('ws://127.0.0.1:8060/1/1/pusher');
         ws_r.onopen = function () {
-              log('connected');
+              log('reader connected');
         };
         ws_r.onerror = function (error) {
               log(error);
@@ -32,9 +34,12 @@ function connect() {
               log('  ' + e.data);
         };
         ws_r.onclose = function () {
-              log('disconnected');
+              log('reader disconnected');
               ws_r = null;
         };
+    }
+    else log('reader already connected');
+
     return false;
 }
 
