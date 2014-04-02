@@ -49,7 +49,7 @@ local chans = {}
 local channels = store.get_channels(redis_store, oid, uid)
 
 for cname, cid in pairs(channels) do
-    local key = string.format(config.IRC_CHANNEL_PUBSUB, oid, cid)
+    local key = string.format(config.IRC_CHANNEL_PUBSUB_FORMAT, oid, cid)
     store.set_online(redis_store, oid, cid, uid, uname)
     chans[key] = {id = cid, name = cname}
 end

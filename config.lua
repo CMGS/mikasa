@@ -16,8 +16,8 @@ SESSION_TIMEOUT = 1000
 SESSION_FORMAT = "session:%s"
 
 IRC_USER_CHANNELS_FORMAT = "irc:%s:user_%s:channels"
-IRC_CHANNEL_ONLINE = "irc:%s:%s:online"
-IRC_CHANNEL_PUBSUB = "irc:%s:%s:pubsub"
-IRC_CHANNEL_MESSAGES = "irc:%s:%s:messages"
+IRC_CHANNEL_ONLINE_FORMAT = "irc:%s:%s:online"
+IRC_CHANNEL_PUBSUB_FORMAT = "irc:%s:%s:pubsub"
+IRC_CHANNEL_MESSAGES_FORMAT = "irc:%s:%s:messages"
 
 CONNECTION_TIMEOUT = 600000

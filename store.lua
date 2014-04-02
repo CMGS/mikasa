@@ -22,14 +22,14 @@ function get_channels(red, oid, uid)
 end
 
 function set_online(red, oid, cid, uid, uname)
-    local res, err = red:hmset(string.format(config.IRC_CHANNEL_ONLINE, oid, cid), uid, uname)
+    local res, err = red:hmset(string.format(config.IRC_CHANNEL_ONLINE_FORMAT, oid, cid), uid, uname)
     if not res then
         ngx.log(ngx.ERR, err)
     end
 end
 
 function set_offline(red, oid, cid, uid)
-    local res, err = red:hdel(string.format(config.IRC_CHANNEL_ONLINE, oid, cid), uid)
+    local res, err = red:hdel(string.format(config.IRC_CHANNEL_ONLINE_FORMAT, oid, cid), uid)
     if not res then
         ngx.log(ngx.ERR, err)
     end
@@ -53,7 +53,7 @@ end
 function publish_online_users(red, oid, channels)
     local map = {}
     for key, chan in pairs(channels) do
-        local users, err = red:hgetall(string.format(config.IRC_CHANNEL_ONLINE, oid, chan.id))
+        local users, err = red:hgetall(string.format(config.IRC_CHANNEL_ONLINE_FORMAT, oid, chan.id))
         if not users then
             ngx.log(ngx.ERR, err)
         else
@@ -76,8 +76,8 @@ function broadcast_without_store(red, keys, message_func)
 end
 
 function pubish_message(red, oid, cid, message, uname, uid)
-    local msg_key = string.format(config.IRC_CHANNEL_MESSAGES, oid, cid)
-    local pub_key = string.format(config.IRC_CHANNEL_PUBSUB, oid, cid)
+    local msg_key = string.format(config.IRC_CHANNEL_MESSAGES_FORMAT, oid, cid)
+    local pub_key = string.format(config.IRC_CHANNEL_PUBSUB_FORMAT, oid, cid)
     local timestamp = tostring(os.time())
     local msg = table.concat({timestamp, uid, uname, message}, ':')
     red:init_pipeline()
@@ -91,7 +91,7 @@ function pubish_message(red, oid, cid, message, uname, uid)
 end
 
 function get_last_messages(red, oid, cid, timestamp)
-    local key = string.format(config.IRC_CHANNEL_MESSAGES, oid, cid)
+    local key = string.format(config.IRC_CHANNEL_MESSAGES_FORMAT, oid, cid)
     local messages = red:zrangebyscore(key, tostring(timestamp), tostring(os.time()))
     -- limit messges
     return messages
