@@ -45,22 +45,22 @@ if not ws then
     return ngx.exit(444)
 end
 
-local map = {
-    chan = {},
-    keys = {}
-}
+local chans = {}
 local channels = store.get_channels(redis_store, oid, uid)
 
 for cname, cid in pairs(channels) do
     local key = string.format(config.IRC_CHANNEL_PUBSUB, oid, cid)
     store.set_online(redis_store, oid, cid, uid, uname)
-    map.chan[cid] = key
-    map.keys[key] = cname
+    chans[key] = {id = cid, name = cname}
 end
 
-local pub_keys = utils.get_keys(map.keys)
+local pub_keys = utils.get_keys(chans)
 store.subscribe(pubsub, pub_keys)
-store.publish_joined(redis_store, pub_keys, uname)
+store.broadcast_without_store(
+    redis_store, pub_keys,
+    function(key) return string.format("%s joined", uname) end
+)
+store.publish_online_users(redis_store, oid, chans)
 
 local lock = true
 local function clean_up()
@@ -71,10 +71,17 @@ local function clean_up()
             ngx.log(ngx.ERR, err)
         end
     end
-    for cid, ckey in pairs(map.chan) do
-        store.unsubscribe(pubsub, ckey)
-        store.set_offline(redis_store, oid, cid, uid)
+    for key, chan in pairs(chans) do
+        store.unsubscribe(pubsub, key)
+        store.set_offline(redis_store, oid, chan.id, uid)
     end
+
+    store.broadcast_without_store(
+        redis_store, pub_keys,
+        function(key) return string.format("%s quit", uname) end
+    )
+    store.publish_online_users(redis_store, oid, chans)
+
     redtool.close(sess, config.SESSION_POOL_SIZE)
     redtool.close(pubsub, config.REDIS_POOL_SIZE)
     redtool.close(redis_store, config.REDIS_POOL_SIZE)
@@ -90,7 +97,7 @@ while ngx.shared.clients:get(ngx.var.cookie_TID) do
     local typ, key, data = store.read_message(pubsub)
     if data and typ == "message" then
         ngx.log(ngx.INFO, "type: ", typ, " channel key: ", key, " data: ", data)
-        websocket.send_message(ws, string.format("%s>>>%s", map.keys[key], data))
+        websocket.send_message(ws, string.format("%s>>>%s", chans[key].name, data))
     elseif typ and key and data then
         ngx.log(ngx.INFO, "type: ", typ, " channel key: ", key, " data: ", data)
     end

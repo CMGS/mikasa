@@ -1,5 +1,6 @@
 module("store", package.seeall)
 
+local utils = require "utils"
 local config = require "config"
 
 function get_channels(red, oid, uid)
@@ -18,15 +19,6 @@ function get_channels(red, oid, uid)
         end
     end)
     return chan
-end
-
-function get_online(red, oid, cid)
-    local online_users, err = red:hgetall(string.format(config.IRC_CHANNEL_ONLINE, oid, cid), uid, uname)
-    if not online_users then
-        ngx.log(ngx.ERR, err)
-        return
-    end
-    local users = {}
 end
 
 function set_online(red, oid, cid, uid, uname)
@@ -58,9 +50,25 @@ function unsubscribe(red, key)
     end
 end
 
-function publish_joined(red, keys, uname)
-    for k, v in pairs(keys) do
-        local res, err = red:publish(v, string.format("%s joined", uname))
+function publish_online_users(red, oid, channels)
+    local map = {}
+    for key, chan in pairs(channels) do
+        local users, err = red:hgetall(string.format(config.IRC_CHANNEL_ONLINE, oid, chan.id))
+        if not users then
+            ngx.log(ngx.ERR, err)
+        else
+            map[key] = string.format("%s:%s", chan.name, table.concat(users, "|"))
+        end
+    end
+    broadcast_without_store(
+        red, utils.get_keys(map),
+        function(key) return map[key] end
+    )
+end
+
+function broadcast_without_store(red, keys, message_func)
+    for _, key in pairs(keys) do
+        local res, err = red:publish(key, message_func(key))
         if not res then
             ngx.log(ngx.ERR, res)
         end
