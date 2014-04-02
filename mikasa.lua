@@ -70,7 +70,7 @@ while true do
         break
     elseif data then
         local o_data = data
-        data = string.split(data, ":")
+        data = string.split(data, ":", 2)
         local control, cname, d = data[1], data[2], data[3]
 
         if control == "_g_last" and channels[cname] and d then
