@@ -30,20 +30,18 @@ function set_offline(red, oid, cid, uid)
     end
 end
 
-function subscribe(red, keys)
-    local res, err = red:subscribe(unpack(keys))
+function subscribe(red, key)
+    local res, err = red:subscribe(key)
     if not res then
         ngx.say("failed to subscribe: ", err)
         return ngx.exit(502)
     end
 end
 
-function unsubscribe(red, keys)
-    for k, v in pairs(keys) do
-        local res, err = red:unsubscribe(k)
-        if not res then
-            ngx.log(ngx.ERR, err)
-        end
+function unsubscribe(red, key)
+    local res, err = red:unsubscribe(key)
+    if not res then
+        ngx.log(ngx.ERR, err)
     end
 end
 

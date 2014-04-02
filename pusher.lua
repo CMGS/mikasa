@@ -20,6 +20,13 @@ local redis_store = redtool.open(
     config.REDIS_TIMEOUT
 )
 
+local pubsub = redtool.open(
+    config.REDIS_HOST,
+    config.REDIS_PORT,
+    config.REDIS_PASSWORD,
+    config.REDIS_TIMEOUT
+)
+
 local oid = ngx.var.oid
 local uid, uname = session.get_user(sess, ngx.var.cookie_TID)
 
@@ -38,19 +45,20 @@ if not ws then
     return ngx.exit(444)
 end
 
-local chan = {}
-local keys = {}
+local map = {
+    chan = {},
+    keys = {}
+}
 local channels = store.get_channels(redis_store, oid, uid)
 
 for cname, cid in pairs(channels) do
     local key = string.format(config.IRC_CHANNEL_PUBSUB, oid, cid)
     store.set_online(redis_store, oid, cid, uid, uname)
-    websocket.send_message(ws, string.format("%s join %s", uname, cname))
-    chan[cid] = key
-    keys[key] = cname
+    store.subscribe(pubsub, key)
+    redis_store:publish(key, string.format("%s joined", uname))
+    map.chan[cid] = key
+    map.keys[key] = cname
 end
-
-store.subscribe(redis_store, utils.get_keys(keys))
 
 local lock = true
 local function clean_up()
@@ -61,11 +69,12 @@ local function clean_up()
             ngx.log(ngx.ERR, err)
         end
     end
-    store.unsubscribe(redis_store, keys)
-    for cid, ckey in pairs(chan) do
+    for cid, ckey in pairs(map.chan) do
+        store.unsubscribe(pubsub, ckey)
         store.set_offline(redis_store, oid, cid, uid)
     end
     redtool.close(sess, config.SESSION_POOL_SIZE)
+    redtool.close(pubsub, config.REDIS_POOL_SIZE)
     redtool.close(redis_store, config.REDIS_POOL_SIZE)
     ngx.exit(444)
 end
@@ -76,10 +85,10 @@ end)
 
 ngx.log(ngx.INFO, "start reader")
 while ngx.shared.clients:get(ngx.var.cookie_TID) do
-    local typ, key, data = store.read_message(redis_store)
+    local typ, key, data = store.read_message(pubsub)
     if data and typ == "message" then
         ngx.log(ngx.INFO, "channel key: ", key, " data: ", data)
-        websocket.send_message(ws, string.format("%s>>>%s", keys[key], data))
+        websocket.send_message(ws, string.format("%s>>>%s", map.keys[key], data))
     end
     if not lock then break end
 end
