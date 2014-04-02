@@ -75,7 +75,7 @@ while true do
 
         if control == "_g_last" and channels[cname] and d then
             local timestamp = tonumber(d)
-            local messages = store.get_last_messages(pubsub, oid, channels[cname], timestamp)
+            local messages = store.get_last_messages(redis_store, oid, channels[cname], timestamp)
             table.foreach(messages, function(seq, message)
                 websocket.send_message(ws, string.format("%s>>>%s", cname, message))
             end)

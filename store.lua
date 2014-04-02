@@ -3,7 +3,11 @@ module("store", package.seeall)
 local config = require "config"
 
 function get_channels(red, oid, uid)
-    local channels = red:hgetall(string.format(config.IRC_USER_CHANNELS_FORMAT, oid, uid))
+    local channels, err = red:hgetall(string.format(config.IRC_USER_CHANNELS_FORMAT, oid, uid))
+    if not channels then
+        ngx.log(ngx.ERR, err)
+        return ngx.exit(502)
+    end
     local chan = {}
     local tmp = nil
     table.foreach(channels, function(k, v)
@@ -14,6 +18,15 @@ function get_channels(red, oid, uid)
         end
     end)
     return chan
+end
+
+function get_online(red, oid, cid)
+    local online_users, err = red:hgetall(string.format(config.IRC_CHANNEL_ONLINE, oid, cid), uid, uname)
+    if not online_users then
+        ngx.log(ngx.ERR, err)
+        return
+    end
+    local users = {}
 end
 
 function set_online(red, oid, cid, uid, uname)
@@ -30,8 +43,8 @@ function set_offline(red, oid, cid, uid)
     end
 end
 
-function subscribe(red, key)
-    local res, err = red:subscribe(key)
+function subscribe(red, keys)
+    local res, err = red:subscribe(unpack(keys))
     if not res then
         ngx.say("failed to subscribe: ", err)
         return ngx.exit(502)
@@ -42,6 +55,15 @@ function unsubscribe(red, key)
     local res, err = red:unsubscribe(key)
     if not res then
         ngx.log(ngx.ERR, err)
+    end
+end
+
+function publish_joined(red, keys, uname)
+    for k, v in pairs(keys) do
+        local res, err = red:publish(v, string.format("%s joined", uname))
+        if not res then
+            ngx.log(ngx.ERR, res)
+        end
     end
 end
 

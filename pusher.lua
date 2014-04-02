@@ -54,11 +54,13 @@ local channels = store.get_channels(redis_store, oid, uid)
 for cname, cid in pairs(channels) do
     local key = string.format(config.IRC_CHANNEL_PUBSUB, oid, cid)
     store.set_online(redis_store, oid, cid, uid, uname)
-    store.subscribe(pubsub, key)
-    redis_store:publish(key, string.format("%s joined", uname))
     map.chan[cid] = key
     map.keys[key] = cname
 end
+
+local pub_keys = utils.get_keys(map.keys)
+store.subscribe(pubsub, pub_keys)
+store.publish_joined(redis_store, pub_keys, uname)
 
 local lock = true
 local function clean_up()
@@ -87,8 +89,10 @@ ngx.log(ngx.INFO, "start reader")
 while ngx.shared.clients:get(ngx.var.cookie_TID) do
     local typ, key, data = store.read_message(pubsub)
     if data and typ == "message" then
-        ngx.log(ngx.INFO, "channel key: ", key, " data: ", data)
+        ngx.log(ngx.INFO, "type: ", typ, " channel key: ", key, " data: ", data)
         websocket.send_message(ws, string.format("%s>>>%s", map.keys[key], data))
+    elseif typ and key and data then
+        ngx.log(ngx.INFO, "type: ", typ, " channel key: ", key, " data: ", data)
     end
     if not lock then break end
 end
