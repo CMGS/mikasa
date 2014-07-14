@@ -101,7 +101,7 @@ function read_message(red)
     local res, err = red:read_reply()
     if not res and not string.find(err, "timeout") then
         ngx.log(ngx.ERR, err)
-        return
+        return nil, nil, nil
     elseif res then
         return res[1], res[2], res[3]
     end
