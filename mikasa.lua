@@ -45,6 +45,9 @@ end
 -- Faster
 local pub_keys = utils.get_keys(chans)
 local welcome_str = table.concat(utils.get_keys(channels), ", ")
+local private_pubsub = string.format(config.IRC_PRIVATE_CHANNEL_FORMAT, uid)
+table.insert(pub_keys, private_pubsub)
+chans[private_pubsub] = { id = 0, name = uname }
 
 local ws, err = server:new {
   timeout = 600000,
