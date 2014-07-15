@@ -9,6 +9,7 @@ REDIS_TIMEOUT = 1000
 SESSION_KEY = "tid"
 SESSION_FORMAT = "session:%s"
 
+IRC_ORGANIZATION_USERS_FORMAT = "irc:%s:users"
 IRC_USER_CHANNELS_FORMAT = "irc:%s:user_%s:channels"
 IRC_CHANNEL_ONLINE_FORMAT = "irc:%s:%s:online"
 IRC_CHANNEL_PUBSUB_FORMAT = "irc:%s:%s:pubsub"

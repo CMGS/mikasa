@@ -17,22 +17,21 @@ local redis_store = redtool.open(
     config.REDIS_TIMEOUT
 )
 
+local oid = ngx.var.oid
+local uid, uname = session.get_user(redis_store, ngx.var.cookie_TID)
+
+if not check.check_permission(redis_store, uid, oid) then
+    ngx.log(ngx.INFO, "permission deny ", uid)
+    redtool.close(redis_store, config.REDIS_POOL_SIZE)
+    ngx.exit(403)
+end
+
 local pubsub = redtool.open(
     config.REDIS_HOST,
     config.REDIS_PORT,
     config.REDIS_PASSWORD,
     config.REDIS_TIMEOUT
 )
-
-local oid = ngx.var.oid
-local uid, uname = session.get_user(redis_store, ngx.var.cookie_TID)
-
-if not check.check_permission(uid, oid) then
-    ngx.say("permission deny")
-    return
-end
-
-ngx.log(ngx.INFO, oid, uid, uname)
 
 local chans = {}
 local channels = store.get_channels(redis_store, oid, uid)
@@ -43,9 +42,8 @@ for cname, cid in pairs(channels) do
     chans[key] = {id = cid, name = cname}
 end
 
+-- Faster
 local pub_keys = utils.get_keys(chans)
-
-local channels = store.get_channels(redis_store, oid, uid)
 local welcome_str = table.concat(utils.get_keys(channels), ", ")
 
 local ws, err = server:new {

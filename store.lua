@@ -3,6 +3,18 @@ module("store", package.seeall)
 local utils = require "utils"
 local config = require "config"
 
+function get_organization_user(red, uid, oid)
+    local res, err = red:hmget(string.format(config.IRC_ORGANIZATION_USERS_FORMAT, oid), uid)
+    if err then
+        ngx.log(ngx.ERR, err)
+        return ngx.exit(502)
+    end
+    if res[1] == ngx.null then
+        return false
+    end
+    return true
+end
+
 function get_channels(red, oid, uid)
     local channels, err = red:hgetall(string.format(config.IRC_USER_CHANNELS_FORMAT, oid, uid))
     if not channels then
