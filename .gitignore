@@ -8,3 +8,4 @@ dist
 p.lua
 server
 .url
+test.lua
