@@ -23,6 +23,11 @@ function write_msg(ws, redis_store, channels, oid, uname, uid)
                 end)
             elseif control == "_s_msg" and channels[cname] and d then
                 store.pubish_message(redis_store, oid, channels[cname], d, uname, uid)
+            elseif control == "_s_private" and d then
+                store.broadcast_without_store(
+                    redis_store, { string.format(config.IRC_PRIVATE_CHANNEL_FORMAT, cname) },
+                    function(key) return d end
+                )
             else
                 ngx.log(ngx.ERR, "incorrect data: ", o_data)
             end
