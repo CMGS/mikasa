@@ -47,7 +47,6 @@ local pub_keys = utils.get_keys(chans)
 local welcome_str = table.concat(utils.get_keys(channels), ", ")
 local private_pubsub = string.format(config.IRC_PRIVATE_CHANNEL_FORMAT, uid)
 table.insert(pub_keys, private_pubsub)
-chans[private_pubsub] = { id = 0, name = uname }
 
 local ws, err = server:new {
   timeout = 600000,
@@ -63,7 +62,7 @@ ngx.log(ngx.INFO, "start mikasa")
 websocket.send_message(ws, "welcome")
 websocket.send_message(ws, "you are in: "..welcome_str)
 ngx.shared.clients:set(ngx.var.cookie_TID, true, 660000)
-local pusher = ngx.thread.spawn(pusher.push_msg, ws, redis_store, pubsub, oid, uname, uid, pub_keys, chans)
+local pusher = ngx.thread.spawn(pusher.push_msg, ws, redis_store, pubsub, oid, uname, uid, pub_keys, chans, private_pubsub)
 ngx.log(ngx.INFO, "pusher thread created: ", coroutine.status(pusher))
 writer.write_msg(ws, redis_store, channels, oid, uname, uid)
 ngx.shared.clients:delete(ngx.var.cookie_TID)
